@@ -19,15 +19,15 @@ def main():
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
     )
+    messages = [
+        {"role": "user", "content": args.user_prompt},
+    ]
+    generate_content(client, messages)
 
+def generate_content(client: OpenAI, messages: list) -> None:
     response = client.chat.completions.create(
         model="openrouter/free",
-        messages=[
-            {
-                "role": "user",
-                "content": args.user_prompt
-            }
-        ],
+        messages=messages,
     )
     if response.usage is None:
         raise RuntimeError("Failed to get usage object on response.")
