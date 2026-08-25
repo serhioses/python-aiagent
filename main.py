@@ -12,8 +12,8 @@ def main():
 
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
-    print(args.user_prompt)
 
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -22,17 +22,20 @@ def main():
     messages = [
         {"role": "user", "content": args.user_prompt},
     ]
-    generate_content(client, messages)
+    if args.verbose:
+        print(f"User prompt: {args.user_prompt}\n")
+    generate_content(client, messages, args.verbose)
 
-def generate_content(client: OpenAI, messages: list) -> None:
+def generate_content(client: OpenAI, messages: list, verbose: bool) -> None:
     response = client.chat.completions.create(
         model="openrouter/free",
         messages=messages,
     )
     if response.usage is None:
         raise RuntimeError("Failed to get usage object on response.")
-    print(f"Prompt tokens: {response.usage.prompt_tokens}")
-    print(f"Response tokens: {response.usage.completion_tokens}")
+    if verbose:
+        print(f"Prompt tokens: {response.usage.prompt_tokens}")
+        print(f"Response tokens: {response.usage.completion_tokens}")
     answer = response.choices[0].message.content
 
     print(f"Response:\n {answer}")
