@@ -1,4 +1,5 @@
 import os
+from openai.types.chat import ChatCompletionFunctionToolParam
 from config import MAX_CHARS
 
 def get_file_content(working_directory: str, file_path: str) -> str:
@@ -20,3 +21,21 @@ def get_file_content(working_directory: str, file_path: str) -> str:
             return file_content_string
     except Exception as e:
         return f'Error reading file "{file_path}": {e}'
+
+schema_get_file_content: ChatCompletionFunctionToolParam = {
+    "type": "function",
+    "function": {
+        "name": "get_file_content",
+        "description": "Reads a file's contents from the working directory. The requested file path must resolve to a location inside the working directory",
+        "parameters": {
+            "type": "object",
+            "required": ["file_path"],
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "File path to get contents from, relative to the working directory",
+                },
+            },
+        },
+    },
+}
