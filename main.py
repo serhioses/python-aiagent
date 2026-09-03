@@ -1,61 +1,40 @@
-import os
-import argparse
-import json
 from dotenv import load_dotenv
-from openai import OpenAI
+load_dotenv()
+
+import sys
+import json
 from prompts import system_prompt
-from call_function import available_functions, call_function
+from config import MAX_MESSAGE_ITERS
+from agent.arg_parser import create_arg_parser
+from agent.openai_client import create_openai_client
+from agent.content import generate_content
+from functions.write_file import write_file
 
 def main():
-    load_dotenv()
-    api_key = os.environ.get("OPENROUTER_API_KEY")
+    # with open("conversation.txt", "w") as file:
+    #     file.write("")
 
-    if api_key is None:
-        raise RuntimeError("OPENROUTER_API_KEY is not set.")
-
-    parser = argparse.ArgumentParser(description="Chatbot")
-    parser.add_argument("user_prompt", type=str, help="User prompt")
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
-    args = parser.parse_args()
-
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=api_key,
-    )
+    args = create_arg_parser()
+    client = create_openai_client()
+    # write_file('.', 'conversation.txt', f'{json.dumps({"role": "system", "content": system_prompt})}\n\n\n')
+    # write_file('.', 'conversation.txt', f'{json.dumps({"role": "user", "content": args.user_prompt})}\n\n\n')
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": args.user_prompt},
     ]
+
     if args.verbose:
         print(f"User prompt: {args.user_prompt}\n")
-    generate_content(client, messages, args.verbose)
 
-def generate_content(client: OpenAI, messages: list, verbose: bool) -> None:
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=messages,
-        tools=available_functions,
-    )
-    if response.usage is None:
-        raise RuntimeError("Failed to get usage object on response.")
-    if verbose:
-        print(f"Prompt tokens: {response.usage.prompt_tokens}")
-        print(f"Response tokens: {response.usage.completion_tokens}")
+    for _ in range(MAX_MESSAGE_ITERS):
+        try:
+            if generate_content(client, messages, args.verbose):
+                return
+        except Exception as e:
+            print(f"Error in generate_content: {e}")
 
-    message = response.choices[0].message
-    if not message.tool_calls:
-        print(f"Response:\n {message.content}")
-        return
-
-    for tool_call in message.tool_calls:
-        if tool_call.type == "function":
-            result_message = call_function(tool_call, verbose)
-            if not result_message.get("content"):
-                raise RuntimeError(f"Empty function response for {tool_call.function.name}")
-            if verbose:
-                print(f"-> {result_message['content']}")
-            # function_args = json.loads(tool_call.function.arguments or "{}")
-            # print(f"Calling function: {tool_call.function.name}({function_args})")
+    print(f"Maximum iterations ({MAX_MESSAGE_ITERS}) reached")
+    sys.exit(1)
 
 
 if __name__ == "__main__":

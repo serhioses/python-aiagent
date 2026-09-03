@@ -14,5 +14,6 @@ You can try to make a decision based on whether you see any of these keywords:
  - Run: Execute (run) Python files with optional arguments
  - Write: Write or overwrite files
 Function descriptions also have these keywords so that you can decide easier.
+
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
 """
